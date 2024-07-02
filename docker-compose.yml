@@ -1,0 +1,58 @@
+version: "3.7"
+
+services:
+  redis:
+    image: "redis:latest"
+    env_file:
+      - .env
+    container_name: redis
+    ports:
+      - "${REDIS_PORT}"
+
+  db:
+      env_file:
+        - .env
+      build: 
+        context: ./db
+        dockerfile: Dockerfile
+      container_name: db
+      restart: unless-stopped
+      ports:
+        - "${DB_PORT}"
+      volumes: 
+      - ./db:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/create_tables.sql
+
+  trx:
+      env_file:
+        - .env
+      build: 
+        context: .
+        dockerfile: ./transaksi/Dockerfile
+      container_name: transaksi
+      # restart: unless-stopped
+      environment:
+        - VIRTUAL_HOST=app
+        - WATCHFILES_FORCE_POLLING=true
+      ports:
+        - "${TRX_PORT}"
+      volumes: ['./transaksi:/app/transaksi']
+
+  mtt:
+      env_file:
+        - .env
+      build: 
+        context: .
+        dockerfile: ./mutasi/Dockerfile
+      container_name: mutasi
+      # restart: unless-stopped
+      environment:
+        - VIRTUAL_HOST=app
+        - WATCHFILES_FORCE_POLLING=true
+      ports:
+        - "${MTT_PORT}"
+      volumes: ['./mutasi:/app/mutasi']
+
+networks:
+  default:
+      name: ${NETWORK_NAME}
